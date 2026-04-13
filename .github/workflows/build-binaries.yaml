@@ -1,0 +1,64 @@
+name: Release Binaries
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            artifact_name: typescript-mcp-linux-x86_64
+          - goos: darwin
+            goarch: arm64
+            artifact_name: typescript-mcp-macos-arm64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p dist
+          output="dist/${{ matrix.artifact_name }}"
+          go build -trimpath -ldflags="-s -w" -o "$output" ./cmd/typescript-mcp
+          sha256sum "$output" > "$output.sha256"
+          tar -czf "$output.tar.gz" -C dist "${{ matrix.artifact_name }}" "${{ matrix.artifact_name }}.sha256"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            dist/${{ matrix.artifact_name }}
+            dist/${{ matrix.artifact_name }}.sha256
+            dist/${{ matrix.artifact_name }}.tar.gz
+          if-no-files-found: error
+
+      - name: Publish release assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/${{ matrix.artifact_name }}
+            dist/${{ matrix.artifact_name }}.sha256
+            dist/${{ matrix.artifact_name }}.tar.gz

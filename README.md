@@ -37,6 +37,9 @@ JSON-RPC, and translates LSP responses into concise, agent-friendly JSON.
 go install github.com/paulvanbrenk/typescript-mcp/cmd/typescript-mcp@latest
 ```
 
+Prebuilt binaries for **macOS arm64** and **Linux x86_64** are attached to
+[GitHub Releases](https://github.com/paulvanbrenk/typescript-mcp/releases).
+
 Or build from source:
 
 ```bash
